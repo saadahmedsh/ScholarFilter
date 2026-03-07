@@ -1,0 +1,57 @@
+# =============================================================================
+# Agentic Research Scout — Configuration
+# =============================================================================
+# This file controls all pipeline behaviour. Override per-run with --config.
+
+# Where to write output files (CSV, JSON, logs)
+output_dir: "./output"
+
+# ── Conferences to scan ──────────────────────────────────────────────────────
+conferences:
+  openreview:
+    - venue_id: "ICLR.cc/2025/Conference"
+      label: "ICLR 2025"
+    - venue_id: "NeurIPS.cc/2025/Conference"
+      label: "NeurIPS 2025"
+
+  aaai:
+    venue: "AAAI"
+    year: "2025"
+    queries:
+      - "agent"
+      - "multi-agent"
+      - "LLM agent"
+      - "autonomous agent"
+      - "agentic"
+      - "multi-agent system"
+      - "agent framework"
+      - "tool use LLM"
+      - "agent planning"
+      - "agent reasoning"
+    max_results_per_query: 1000
+    dblp_fallback_threshold: 10
+
+# ── API settings ─────────────────────────────────────────────────────────────
+api:
+  semantic_scholar:
+    base_url: "https://api.semanticscholar.org/graph/v1"
+    search_url: "https://api.semanticscholar.org/graph/v1/paper/search"
+    rate_limit_sleep: 1.5       # seconds between paginated requests
+    rate_limit_backoff: 30      # seconds to wait on 429 Too Many Requests
+    inter_query_sleep: 2        # seconds between separate queries
+    request_timeout: 30         # seconds
+    batch_limit: 100            # results per page
+
+  dblp:
+    base_url: "https://dblp.org/search/publ/api"
+    max_results: 1000
+    request_timeout: 30
+    inter_query_sleep: 1
+
+  openreview:
+    base_url: "https://api2.openreview.net"
+
+# ── Logging ──────────────────────────────────────────────────────────────────
+logging:
+  level: "INFO"                 # DEBUG | INFO | WARNING | ERROR
+  log_file: "pipeline.log"     # written inside output_dir
