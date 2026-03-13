@@ -343,15 +343,14 @@ def _run_pipeline(cfg: dict[str, Any]) -> None:
             )
             matched.append(paper)
 
-    deduplicated = matched
-    log.info("Papers matching filters: %d", len(deduplicated))
+    log.info("Papers matching filters: %d", len(matched))
 
     # 4) Write outputs
     columns = [
         "Title", "Abstract", "PDF_URL", "Conference",
         "Matched_Agent_Keywords", "Matched_Domain_Keywords",
     ]
-    df = pd.DataFrame(deduplicated, columns=columns)
+    df = pd.DataFrame(matched, columns=columns)
 
     df.to_csv(csv_path, index=False, encoding="utf-8-sig")
     log.info("CSV saved to: %s", csv_path)
