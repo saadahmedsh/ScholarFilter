@@ -1,5 +1,3 @@
-# Internal Research Pipeline
-
 Automated pipeline to discover **Agentic AI** papers (multi-agent systems, LLM agents, autonomous agents) applied to **Financial Auditing** and **Pharmaceuticals / Medicine** from top ML conferences.
 
 ## Features
@@ -136,6 +134,5 @@ agentic-research-scout/
 4. Run linting: `uv run ruff check .`
 5. Submit a pull request
 
-## License
 
 Proprietary / Internal Company Use Only.
