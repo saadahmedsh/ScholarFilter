@@ -365,8 +365,9 @@ def _run_pipeline(cfg: dict[str, Any]) -> None:
     print("\n" + "=" * 70)
     print("  RESULTS SUMMARY")
     print("=" * 70)
-    print(f"  Total papers scanned  : {len(deduplicated_all)}")
-    print(f"  Papers matching filter: {len(deduplicated)}")
+    print(f"  Total papers fetched (pre-dedup)         : {len(all_papers)}")
+    print(f"  Total unique papers scanned (post-dedup) : {len(deduplicated_all)}")
+    print(f"  Papers matching filter                   : {len(deduplicated)}")
     print("  Breakdown by conference:")
     for conf_cfg in cfg.get("conferences", {}).get("openreview", []):
         label = conf_cfg["label"]
