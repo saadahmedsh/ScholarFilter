@@ -199,7 +199,7 @@ def _run_curation(cfg: dict[str, Any], input_path: Path | None = None) -> None:
     for conf in ["ICLR 2025", "NeurIPS 2025", "AAAI 2025"]:
         count = len([p for p in kept if p["Conference"] == conf])
         print(f"    {conf}: {count}")
-    print(f"\n  All kept papers:")
+    print("\n  All kept papers:")
     for i, p in enumerate(kept, 1):
         print(f"    [{i:>2}] [{p['Conference']}] {p['Title']}")
     print(f"\n  Removed {len(removed)} false positives")
