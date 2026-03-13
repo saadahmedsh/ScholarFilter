@@ -17,7 +17,6 @@ import json
 import logging
 import sys
 import time
-from pathlib import Path
 from typing import Any
 
 import pandas as pd
@@ -322,10 +321,21 @@ def _run_pipeline(cfg: dict[str, Any]) -> None:
 
     log.info("Total papers fetched across all conferences: %d", len(all_papers))
 
-    # 2) Apply keyword filter
+    # 2) Deduplicate by title FIRST
+    seen_titles: set[str] = set()
+    deduplicated_all: list[dict] = []
+    for p in all_papers:
+        key = p["Title"].strip().lower()
+        if key not in seen_titles:
+            seen_titles.add(key)
+            deduplicated_all.append(p)
+
+    log.info("Total papers after dedup: %d", len(deduplicated_all))
+
+    # 3) Apply keyword filter
     matched: list[dict] = []
-    for paper in tqdm(all_papers, desc="Filtering"):
-        result = matches_filter(paper["Title"], paper["Abstract"])
+    for paper in tqdm(deduplicated_all, desc="Filtering"):
+        result = matches_filter(paper.get("Title", ""), paper.get("Abstract", ""))
         if result:
             paper["Matched_Agent_Keywords"] = "; ".join(result["agent_keywords"])
             paper["Matched_Domain_Keywords"] = "; ".join(
@@ -333,23 +343,14 @@ def _run_pipeline(cfg: dict[str, Any]) -> None:
             )
             matched.append(paper)
 
-    # 3) Deduplicate by title
-    seen_titles: set[str] = set()
-    deduplicated: list[dict] = []
-    for p in matched:
-        key = p["Title"].strip().lower()
-        if key not in seen_titles:
-            seen_titles.add(key)
-            deduplicated.append(p)
-
-    log.info("Papers matching filters (after dedup): %d", len(deduplicated))
+    log.info("Papers matching filters: %d", len(matched))
 
     # 4) Write outputs
     columns = [
         "Title", "Abstract", "PDF_URL", "Conference",
         "Matched_Agent_Keywords", "Matched_Domain_Keywords",
     ]
-    df = pd.DataFrame(deduplicated, columns=columns)
+    df = pd.DataFrame(matched, columns=columns)
 
     df.to_csv(csv_path, index=False, encoding="utf-8-sig")
     log.info("CSV saved to: %s", csv_path)
@@ -363,8 +364,9 @@ def _run_pipeline(cfg: dict[str, Any]) -> None:
     print("\n" + "=" * 70)
     print("  RESULTS SUMMARY")
     print("=" * 70)
-    print(f"  Total papers scanned  : {len(all_papers)}")
-    print(f"  Papers matching filter: {len(deduplicated)}")
+    print(f"  Total papers fetched (pre-dedup)         : {len(all_papers)}")
+    print(f"  Total unique papers scanned (post-dedup) : {len(deduplicated_all)}")
+    print(f"  Papers matching filter                   : {len(deduplicated)}")
     print("  Breakdown by conference:")
     for conf_cfg in cfg.get("conferences", {}).get("openreview", []):
         label = conf_cfg["label"]
@@ -373,13 +375,13 @@ def _run_pipeline(cfg: dict[str, Any]) -> None:
     aaai_label = f"{aaai_cfg.get('venue', 'AAAI')} {aaai_cfg.get('year', '2025')}"
     aaai_count = len([p for p in deduplicated if p["Conference"] == aaai_label])
     print(f"    {aaai_label}: {aaai_count}")
-    print(f"\n  Output files:")
+    print("\n  Output files:")
     print(f"    CSV  : {csv_path}")
     print(f"    JSON : {json_path}")
     print("=" * 70)
 
     if deduplicated:
-        print(f"\n  Sample matched papers (up to 5):\n")
+        print("\n  Sample matched papers (up to 5):\n")
         for i, p in enumerate(deduplicated[:5], 1):
             print(f"  [{i}] {p['Conference']}")
             print(f"      Title: {p['Title'][:100]}...")
