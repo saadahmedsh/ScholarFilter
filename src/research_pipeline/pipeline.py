@@ -29,10 +29,6 @@ from research_pipeline.keywords import matches_filter
 log = logging.getLogger(__name__)
 
 
-# ---------------------------------------------------------------------------
-# Logging setup
-# ---------------------------------------------------------------------------
-
 def _setup_logging(cfg: dict[str, Any]) -> None:
     """Configure root logger with console + optional file handler."""
     level = getattr(logging, cfg.get("logging", {}).get("level", "INFO").upper(), logging.INFO)
@@ -50,10 +46,6 @@ def _setup_logging(cfg: dict[str, Any]) -> None:
     logging.basicConfig(level=level, format=fmt, handlers=handlers, force=True)
 
 
-# ---------------------------------------------------------------------------
-# OpenReview helpers  (ICLR 2025, NeurIPS 2025)
-# ---------------------------------------------------------------------------
-
 def fetch_openreview_papers(
     venue_id: str,
     conference_label: str,
@@ -61,7 +53,7 @@ def fetch_openreview_papers(
 ) -> list[dict]:
     """Fetch all accepted papers from an OpenReview venue."""
     try:
-        import openreview
+        import openreview  # type: ignore
     except ImportError:
         log.error("openreview-py is not installed. Run: uv add openreview-py")
         return []
@@ -128,10 +120,6 @@ def fetch_openreview_papers(
     log.info("  Fetched %d total papers from %s.", len(papers), conference_label)
     return papers
 
-
-# ---------------------------------------------------------------------------
-# Semantic Scholar helper  (AAAI 2025)
-# ---------------------------------------------------------------------------
 
 def _s2_search(
     query: str,
@@ -231,10 +219,6 @@ def fetch_aaai_papers(cfg: dict[str, Any]) -> list[dict]:
     return papers
 
 
-# ---------------------------------------------------------------------------
-# DBLP Fallback for AAAI 2025
-# ---------------------------------------------------------------------------
-
 def fetch_aaai_dblp_fallback(cfg: dict[str, Any]) -> list[dict]:
     """Fallback: fetch AAAI 2025 papers from DBLP."""
     aaai_cfg = cfg.get("conferences", {}).get("aaai", {})
@@ -284,30 +268,42 @@ def fetch_aaai_dblp_fallback(cfg: dict[str, Any]) -> list[dict]:
     return papers
 
 
-# ---------------------------------------------------------------------------
-# Main pipeline
-# ---------------------------------------------------------------------------
-
 def _run_pipeline(cfg: dict[str, Any]) -> None:
-    """Core pipeline logic: fetch → filter → deduplicate → save."""
+    """Core pipeline logic: fetch → deduplicate → filter → save."""
     output_dir = get_output_dir(cfg)
     csv_path = output_dir / "results.csv"
     json_path = output_dir / "results.json"
 
-    # 1) Collect papers from all sources
-    all_papers: list[dict] = []
+    seen_titles: set[str] = set()
+    matched: list[dict] = []
+    total_fetched = 0
+    total_unique = 0
 
-    # --- OpenReview conferences ---
+    def process_papers(papers: list[dict]) -> None:
+        nonlocal total_fetched, total_unique
+        for p in papers:
+            total_fetched += 1
+            key = p["Title"].strip().lower()
+            if key not in seen_titles:
+                seen_titles.add(key)
+                total_unique += 1
+                result = matches_filter(p.get("Title", ""), p.get("Abstract", ""))
+                if result:
+                    p["Matched_Agent_Keywords"] = "; ".join(result["agent_keywords"])
+                    p["Matched_Domain_Keywords"] = "; ".join(
+                        result["finance_keywords"] + result["pharma_keywords"]
+                    )
+                    matched.append(p)
+
     for venue_cfg in cfg.get("conferences", {}).get("openreview", []):
         try:
             papers = fetch_openreview_papers(
                 venue_cfg["venue_id"], venue_cfg["label"], cfg,
             )
-            all_papers.extend(papers)
+            process_papers(papers)
         except Exception as exc:
             log.error("Failed to fetch %s: %s", venue_cfg.get("label"), exc)
 
-    # --- AAAI ---
     aaai_cfg = cfg.get("conferences", {}).get("aaai", {})
     dblp_threshold = aaai_cfg.get("dblp_fallback_threshold", 10)
     try:
@@ -315,37 +311,12 @@ def _run_pipeline(cfg: dict[str, Any]) -> None:
         if len(aaai) < dblp_threshold:
             log.info("Few results from Semantic Scholar — trying DBLP fallback …")
             aaai.extend(fetch_aaai_dblp_fallback(cfg))
-        all_papers.extend(aaai)
+        process_papers(aaai)
     except Exception as exc:
         log.error("Failed to fetch AAAI: %s", exc)
 
-    log.info("Total papers fetched across all conferences: %d", len(all_papers))
-
-    # 2) Deduplicate by title FIRST
-    seen_titles: set[str] = set()
-    deduplicated_all: list[dict] = []
-    for p in all_papers:
-        key = p["Title"].strip().lower()
-        if key not in seen_titles:
-            seen_titles.add(key)
-            deduplicated_all.append(p)
-
-    log.info("Total papers after dedup: %d", len(deduplicated_all))
-
-    # 3) Apply keyword filter
-    matched: list[dict] = []
-    for paper in tqdm(deduplicated_all, desc="Filtering"):
-        result = matches_filter(paper.get("Title", ""), paper.get("Abstract", ""))
-        if result:
-            paper["Matched_Agent_Keywords"] = "; ".join(result["agent_keywords"])
-            paper["Matched_Domain_Keywords"] = "; ".join(
-                result["finance_keywords"] + result["pharma_keywords"]
-            )
-            matched.append(paper)
-
     log.info("Papers matching filters: %d", len(matched))
 
-    # 4) Write outputs
     columns = [
         "Title", "Abstract", "PDF_URL", "Conference",
         "Matched_Agent_Keywords", "Matched_Domain_Keywords",
@@ -360,38 +331,33 @@ def _run_pipeline(cfg: dict[str, Any]) -> None:
         json.dump(records, f, indent=2, ensure_ascii=False)
     log.info("JSON saved to: %s", json_path)
 
-    # 5) Summary
     print("\n" + "=" * 70)
     print("  RESULTS SUMMARY")
     print("=" * 70)
-    print(f"  Total papers fetched (pre-dedup)         : {len(all_papers)}")
-    print(f"  Total unique papers scanned (post-dedup) : {len(deduplicated_all)}")
-    print(f"  Papers matching filter                   : {len(deduplicated)}")
+    print(f"  Total papers fetched (pre-dedup)         : {total_fetched}")
+    print(f"  Total unique papers scanned (post-dedup) : {total_unique}")
+    print(f"  Papers matching filter                   : {len(matched)}")
     print("  Breakdown by conference:")
     for conf_cfg in cfg.get("conferences", {}).get("openreview", []):
         label = conf_cfg["label"]
-        count = len([p for p in deduplicated if p["Conference"] == label])
+        count = len([p for p in matched if p["Conference"] == label])
         print(f"    {label}: {count}")
     aaai_label = f"{aaai_cfg.get('venue', 'AAAI')} {aaai_cfg.get('year', '2025')}"
-    aaai_count = len([p for p in deduplicated if p["Conference"] == aaai_label])
+    aaai_count = len([p for p in matched if p["Conference"] == aaai_label])
     print(f"    {aaai_label}: {aaai_count}")
     print("\n  Output files:")
     print(f"    CSV  : {csv_path}")
     print(f"    JSON : {json_path}")
     print("=" * 70)
 
-    if deduplicated:
+    if matched:
         print("\n  Sample matched papers (up to 5):\n")
-        for i, p in enumerate(deduplicated[:5], 1):
+        for i, p in enumerate(matched[:5], 1):
             print(f"  [{i}] {p['Conference']}")
             print(f"      Title: {p['Title'][:100]}...")
             print(f"      PDF  : {p['PDF_URL'][:80]}")
             print()
 
-
-# ---------------------------------------------------------------------------
-# CLI entry point
-# ---------------------------------------------------------------------------
 
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(

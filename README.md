@@ -2,12 +2,11 @@ Automated pipeline to discover **Agentic AI** papers (multi-agent systems, LLM a
 
 ## Features
 
-- 🔍 **Multi-source paper collection** — ICLR, NeurIPS (via OpenReview) and AAAI (via Semantic Scholar + DBLP fallback)
-- 🎯 **Two-tier keyword filtering** — requires both an "agent" keyword AND a domain keyword match
-- 🧹 **False-positive curation** — manually reviewed removal list for common false matches
-- 📊 **Structured output** — CSV and JSON with matched keywords per paper
-- ⚙️ **Configurable** — all parameters in a single `config.yaml`
-- 📝 **Logging** — console and file logging with configurable levels
+- **Multi-source paper collection** — ICLR, NeurIPS (via OpenReview) and AAAI (via Semantic Scholar + DBLP fallback)
+- **Two-tier keyword filtering** — requires both an "agent" keyword AND a domain keyword match
+- **Structured output** — CSV and JSON with matched keywords per paper
+- **Configurable** — all parameters in a single `config.yaml`
+- **Logging** — console and file logging with configurable levels
 
 ## Prerequisites
 
@@ -36,9 +35,6 @@ uv sync
 
 # 3. Run the full pipeline
 uv run research-pipeline
-
-# 4. Curate (remove false positives)
-uv run curate-results
 ```
 
 Or use the all-in-one script:
@@ -79,11 +75,10 @@ cp .env.example .env
 
 ### CLI Options
 
-Both commands support `--config` and `--output-dir` overrides:
+The pipeline supports `--config` and `--output-dir` overrides:
 
 ```bash
 uv run research-pipeline --config custom.yaml --output-dir ./my-results
-uv run curate-results --config custom.yaml --input ./my-results/results.json
 ```
 
 ## Output
@@ -94,15 +89,13 @@ Results are written to the `output/` directory:
 |------|-------------|
 | `results.csv` | All papers matching the keyword filter |
 | `results.json` | Same data in JSON format |
-| `curated_results.csv` | Papers after false-positive removal |
-| `curated_results.json` | Same curated data in JSON format |
 | `pipeline.log` | Detailed execution log |
 
 ## Project Structure
 
 ```
 agentic-research-scout/
-├── config.yaml              # Pipeline configuration
+├── config.yaml               # Pipeline configuration
 ├── pyproject.toml            # Project manifest (uv / pip)
 ├── .env.example              # Environment variable template
 ├── .gitignore
@@ -113,10 +106,9 @@ agentic-research-scout/
 └── src/
     └── research_pipeline/
         ├── __init__.py
-        ├── config.py          # Config loader
-        ├── keywords.py        # Keyword definitions & matching
-        ├── pipeline.py        # Main paper-fetching pipeline
-        └── curate.py          # False-positive curation
+        ├── config.py         # Config loader
+        ├── keywords.py       # Keyword definitions and matching
+        └── pipeline.py       # Main paper-fetching pipeline
 ```
 
 ## How It Works
@@ -124,7 +116,6 @@ agentic-research-scout/
 1. **Fetch** — Collects papers from OpenReview (ICLR, NeurIPS) and Semantic Scholar/DBLP (AAAI)
 2. **Filter** — Applies a two-tier keyword filter: papers must mention both an agent-related term AND a domain-specific term (finance/audit or pharma/medicine)
 3. **Deduplicate** — Removes duplicate papers by normalised title
-4. **Curate** — A separate curation step removes known false positives (e.g. "accounting for" ≠ financial accounting)
 
 ## Contributing
 
