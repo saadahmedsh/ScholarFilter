@@ -36,14 +36,13 @@ def load_config(path: str | Path | None = None) -> dict[str, Any]:
     with open(config_path, "r", encoding="utf-8") as fh:
         cfg: dict[str, Any] = yaml.safe_load(fh) or {}
 
-    # ── Env-var overrides ────────────────────────────────────────────────
     if os.getenv("LOG_LEVEL"):
-        cfg.setdefault("logging", {})["level"] = os.environ["LOG_LEVEL"]
+        cfg.setdefault("logging", {})["level"] = str(os.environ.get("LOG_LEVEL"))
 
     if os.getenv("SEMANTIC_SCHOLAR_API_KEY"):
         cfg.setdefault("api", {}).setdefault("semantic_scholar", {})[
             "api_key"
-        ] = os.environ["SEMANTIC_SCHOLAR_API_KEY"]
+        ] = str(os.environ.get("SEMANTIC_SCHOLAR_API_KEY"))
 
     return cfg
 

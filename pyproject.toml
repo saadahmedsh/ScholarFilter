@@ -15,7 +15,6 @@ dependencies = [
 
 [project.scripts]
 research-pipeline = "research_pipeline.pipeline:main"
-curate-results = "research_pipeline.curate:main"
 
 [build-system]
 requires = ["hatchling"]

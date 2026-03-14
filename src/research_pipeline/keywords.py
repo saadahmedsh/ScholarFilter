@@ -12,7 +12,6 @@ from __future__ import annotations
 import re
 
 
-# ── Agent / Agentic AI keywords ─────────────────────────────────────────────
 AGENT_KEYWORDS: list[str] = [
     r"\bagent\b",
     r"\bagents\b",
@@ -35,7 +34,6 @@ AGENT_KEYWORDS: list[str] = [
     r"\bagent[\-\s]?reasoning\b",
 ]
 
-# ── Finance / Audit keywords ────────────────────────────────────────────────
 FINANCE_AUDIT_KEYWORDS: list[str] = [
     r"\baudit\w*\b",
     r"\bfinancial\b",
@@ -58,7 +56,6 @@ FINANCE_AUDIT_KEYWORDS: list[str] = [
     r"\btaxation\b",
 ]
 
-# ── Pharma / Medicine keywords ──────────────────────────────────────────────
 PHARMA_MEDICINE_KEYWORDS: list[str] = [
     r"\bpharmaceut\w*\b",
     r"\bdrug[\-\s]?discover\w*\b",
@@ -88,7 +85,6 @@ PHARMA_MEDICINE_KEYWORDS: list[str] = [
     r"\bbiomark\w*\b",
 ]
 
-# ── Pre-compiled patterns (module-level, compiled once) ──────────────────────
 _agent_re = [re.compile(p, re.IGNORECASE) for p in AGENT_KEYWORDS]
 _finance_re = [re.compile(p, re.IGNORECASE) for p in FINANCE_AUDIT_KEYWORDS]
 _pharma_re = [re.compile(p, re.IGNORECASE) for p in PHARMA_MEDICINE_KEYWORDS]

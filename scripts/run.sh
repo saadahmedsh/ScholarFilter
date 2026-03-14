@@ -31,12 +31,8 @@ echo -e "\n${YELLOW}[1/3] Syncing dependencies...${NC}"
 uv sync
 
 # ── 3. Run the pipeline ─────────────────────────────────────────────────────
-echo -e "\n${YELLOW}[2/3] Running research pipeline...${NC}"
+echo -e "\n${YELLOW}[2/2] Running research pipeline...${NC}"
 uv run research-pipeline "$@"
-
-# ── 4. Run curation ─────────────────────────────────────────────────────────
-echo -e "\n${YELLOW}[3/3] Curating results...${NC}"
-uv run curate-results "$@"
 
 echo -e "\n${GREEN}═══════════════════════════════════════════════════════${NC}"
 echo -e "${GREEN}  Done! Check the output/ directory for results.       ${NC}"

@@ -30,19 +30,15 @@ try {
 }
 
 # ── 2. Install / sync dependencies ──────────────────────────────────────────
-Write-Host "`n[1/3] Syncing dependencies..." -ForegroundColor Yellow
+Write-Host "`n[1/2] Syncing dependencies..." -ForegroundColor Yellow
 uv sync
 
 # ── 3. Run the pipeline ─────────────────────────────────────────────────────
 $extraArgs = @()
 if ($Config) { $extraArgs += @("--config", $Config) }
 
-Write-Host "`n[2/3] Running research pipeline..." -ForegroundColor Yellow
+Write-Host "`n[2/2] Running research pipeline..." -ForegroundColor Yellow
 uv run research-pipeline @extraArgs
-
-# ── 4. Run curation ─────────────────────────────────────────────────────────
-Write-Host "`n[3/3] Curating results..." -ForegroundColor Yellow
-uv run curate-results @extraArgs
 
 Write-Host "`n═══════════════════════════════════════════════════════" -ForegroundColor Green
 Write-Host "  Done! Check the output/ directory for results.       " -ForegroundColor Green
