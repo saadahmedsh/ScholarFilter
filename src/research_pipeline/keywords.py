@@ -85,9 +85,9 @@ PHARMA_MEDICINE_KEYWORDS: list[str] = [
     r"\bbiomark\w*\b",
 ]
 
-_agent_re = [re.compile(str(p), re.IGNORECASE) for p in AGENT_KEYWORDS]
-_finance_re = [re.compile(str(p), re.IGNORECASE) for p in FINANCE_AUDIT_KEYWORDS]
-_pharma_re = [re.compile(str(p), re.IGNORECASE) for p in PHARMA_MEDICINE_KEYWORDS]
+_agent_re = [re.compile(p, re.IGNORECASE) for p in AGENT_KEYWORDS]
+_finance_re = [re.compile(p, re.IGNORECASE) for p in FINANCE_AUDIT_KEYWORDS]
+_pharma_re = [re.compile(p, re.IGNORECASE) for p in PHARMA_MEDICINE_KEYWORDS]
 
 
 def _match_keywords(text: str, compiled: list[re.Pattern]) -> list[str]:
