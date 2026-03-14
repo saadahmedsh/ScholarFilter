@@ -133,6 +133,3 @@ agentic-research-scout/
 3. Make your changes
 4. Run linting: `uv run ruff check .`
 5. Submit a pull request
-
-
-Proprietary / Internal Company Use Only.
