@@ -37,12 +37,12 @@ def load_config(path: str | Path | None = None) -> dict[str, Any]:
         cfg: dict[str, Any] = yaml.safe_load(fh) or {}
 
     if os.getenv("LOG_LEVEL"):
-        cfg.setdefault("logging", {})["level"] = str(os.environ.get("LOG_LEVEL"))
+        cfg.setdefault("logging", {})["level"] = os.environ["LOG_LEVEL"]
 
     if os.getenv("SEMANTIC_SCHOLAR_API_KEY"):
         cfg.setdefault("api", {}).setdefault("semantic_scholar", {})[
             "api_key"
-        ] = str(os.environ.get("SEMANTIC_SCHOLAR_API_KEY"))
+        ] = os.environ["SEMANTIC_SCHOLAR_API_KEY"]
 
     return cfg
 
