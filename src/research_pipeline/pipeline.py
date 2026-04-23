@@ -24,7 +24,7 @@ import requests
 from tqdm import tqdm
 
 from research_pipeline.config import get_output_dir, load_config
-from research_pipeline.keywords import matches_filter
+from research_pipeline.keywords import KeywordFilter
 
 log = logging.getLogger(__name__)
 
@@ -121,6 +121,12 @@ def fetch_openreview_papers(
     return papers
 
 
+
+def _get_api_config(cfg: dict[str, Any], api_name: str) -> dict[str, Any]:
+    """Extract configuration for a specific API from the main configuration dictionary."""
+    return cfg.get("api", {}).get(api_name, {})
+
+
 def _s2_search(
     query: str,
     venue: str,
@@ -129,7 +135,7 @@ def _s2_search(
     max_results: int = 2000,
 ) -> list[dict]:
     """Search Semantic Scholar for papers matching *query* + *venue* + *year*."""
-    s2_cfg = cfg.get("api", {}).get("semantic_scholar", {})
+    s2_cfg = _get_api_config(cfg, "semantic_scholar")
     search_url = s2_cfg.get("search_url", "https://api.semanticscholar.org/graph/v1/paper/search")
     batch_limit = s2_cfg.get("batch_limit", 100)
     timeout = s2_cfg.get("request_timeout", 30)
@@ -222,7 +228,7 @@ def fetch_aaai_papers(cfg: dict[str, Any]) -> list[dict]:
 def fetch_aaai_dblp_fallback(cfg: dict[str, Any]) -> list[dict]:
     """Fallback: fetch AAAI 2025 papers from DBLP."""
     aaai_cfg = cfg.get("conferences", {}).get("aaai", {})
-    dblp_cfg = cfg.get("api", {}).get("dblp", {})
+    dblp_cfg = _get_api_config(cfg, "dblp")
     venue = aaai_cfg.get("venue", "AAAI")
     year = aaai_cfg.get("year", "2025")
     base_url = dblp_cfg.get("base_url", "https://dblp.org/search/publ/api")
@@ -279,6 +285,8 @@ def _run_pipeline(cfg: dict[str, Any]) -> None:
     total_fetched = 0
     total_unique = 0
 
+    keyword_filter = KeywordFilter(cfg)
+
     def process_papers(papers: list[dict]) -> None:
         nonlocal total_fetched, total_unique
         for p in papers:
@@ -287,12 +295,10 @@ def _run_pipeline(cfg: dict[str, Any]) -> None:
             if key not in seen_titles:
                 seen_titles.add(key)
                 total_unique += 1
-                result = matches_filter(p.get("Title", ""), p.get("Abstract", ""))
+                result = keyword_filter.matches(p.get("Title", ""), p.get("Abstract", ""))
                 if result:
-                    p["Matched_Agent_Keywords"] = "; ".join(result["agent_keywords"])
-                    p["Matched_Domain_Keywords"] = "; ".join(
-                        result["finance_keywords"] + result["pharma_keywords"]
-                    )
+                    for group_name, keywords in result.items():
+                        p[f"Matched_{group_name}_Keywords"] = "; ".join(keywords)
                     matched.append(p)
 
     for venue_cfg in cfg.get("conferences", {}).get("openreview", []):
@@ -317,10 +323,10 @@ def _run_pipeline(cfg: dict[str, Any]) -> None:
 
     log.info("Papers matching filters: %d", len(matched))
 
-    columns = [
-        "Title", "Abstract", "PDF_URL", "Conference",
-        "Matched_Agent_Keywords", "Matched_Domain_Keywords",
-    ]
+    columns = ["Title", "Abstract", "PDF_URL", "Conference"]
+    if cfg.get("keyword_groups"):
+        for group in cfg.get("keyword_groups", {}).keys():
+            columns.append(f"Matched_{group}_Keywords")
     df = pd.DataFrame(matched, columns=columns)
 
     df.to_csv(csv_path, index=False, encoding="utf-8-sig")

@@ -1,4 +1,4 @@
-from research_pipeline.config import get_output_dir, load_config
+from research_pipeline.config import get_output_dir, load_config  # type: ignore  # type: ignore
 
 def test_get_output_dir(tmp_path):
     d = tmp_path / "out"

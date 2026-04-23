@@ -1,46 +1,62 @@
-Automated pipeline to discover **Agentic AI** papers (multi-agent systems, LLM agents, autonomous agents) applied to **Financial Auditing** and **Pharmaceuticals / Medicine** from top ML conferences.
+# Automated Research Pipeline
+
+An automated, highly configurable pipeline designed to discover academic papers from major machine learning conferences based on flexible, dynamic keyword constraints.
+
+## Architecture and Data Flow
+
+The pipeline operates in three main stages:
+
+1. **Fetch**: Papers are retrieved from external APIs. By default, it queries OpenReview for ICLR and NeurIPS, and Semantic Scholar (with a DBLP fallback mechanism) for AAAI.
+2. **Deduplicate**: Papers are deduplicated across multiple sources and queries using normalized titles.
+3. **Filter**: The pipeline uses a dynamically configurable multi-tier keyword filtering system. Papers are evaluated against groups defined in the configuration file. A paper is only accepted if it contains at least one keyword match from *every* defined group.
 
 ## Features
 
-- **Multi-source paper collection** — ICLR, NeurIPS (via OpenReview) and AAAI (via Semantic Scholar + DBLP fallback)
-- **Two-tier keyword filtering** — requires both an "agent" keyword AND a domain keyword match
-- **Structured output** — CSV and JSON with matched keywords per paper
-- **Configurable** — all parameters in a single `config.yaml`
-- **Logging** — console and file logging with configurable levels
+* **Modular Keyword Filtering**: Keyword criteria are no longer hardcoded. All search terms are consolidated into an extensible configuration file. Users can define arbitrary keyword groups.
+* **Multi-source Integration**: Supports Semantic Scholar, DBLP, and OpenReview out of the box.
+* **Structured Output**: Successfully filtered papers are exported to CSV and JSON formats, explicitly mapping the matching keywords for each group.
+* **Centralized Configuration**: `config.yaml` controls all operational variables, API settings, search parameters, and keyword dictionaries.
 
 ## Prerequisites
 
-- **Python 3.11+**
-- **[uv](https://docs.astral.sh/uv/)** — fast Python package manager
+* Python 3.11 or higher
+* [uv](https://docs.astral.sh/uv/)
 
-Install uv if you don't have it:
+To install `uv`:
 
 ```bash
-# macOS / Linux
+# macOS or Linux
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
 # Windows (PowerShell)
 powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
 ```
 
-## Quick Start
+## Setup and Usage
+
+1. Clone the repository and navigate to the project directory:
 
 ```bash
-# 1. Clone the repository
 git clone <internal-repo-url>
 cd internal-research-pipeline
+```
 
-# 2. Install dependencies
+2. Install dependencies:
+
+```bash
 uv sync
+```
 
-# 3. Run the full pipeline
+3. Run the pipeline:
+
+```bash
 uv run research-pipeline
 ```
 
-Or use the all-in-one script:
+Alternative execution via script wrappers:
 
 ```bash
-# Linux / macOS
+# Linux or macOS
 bash scripts/run.sh
 
 # Windows (PowerShell)
@@ -49,78 +65,59 @@ bash scripts/run.sh
 
 ## Configuration
 
-All settings are in [`config.yaml`](config.yaml). Key sections:
+The core of the system is managed by `config.yaml`.
 
-| Section | Purpose |
-|---------|---------|
-| `output_dir` | Where CSV, JSON, and logs are written |
-| `conferences.openreview` | OpenReview venue IDs and labels |
-| `conferences.aaai` | AAAI search queries and parameters |
-| `api.semantic_scholar` | S2 rate limits, timeouts, API key |
-| `api.dblp` | DBLP fallback settings |
-| `logging` | Log level and log file name |
+### Key Configuration Sections
+
+* **`output_dir`**: The directory path where the resulting CSV, JSON, and log files will be saved.
+* **`keyword_groups`**: A dictionary where keys represent category names and values are lists of regex strings. A paper must match at least one string in every category to be included in the results.
+* **`conferences`**: Contains sub-configurations for `openreview` (venues and labels) and `aaai` (search queries, maximum result limits, and fallback thresholds).
+* **`api`**: Defines operational constraints (rate limits, timeouts, backoff durations) for Semantic Scholar, DBLP, and OpenReview.
+* **`logging`**: Configures the desired output verbosity and log file destination.
 
 ### Environment Variables
 
-Copy `.env.example` to `.env` and fill in optional overrides:
+Environment variables can override specific configuration parameters. Copy `.env.example` to `.env` to define them locally:
 
 ```bash
 cp .env.example .env
 ```
 
-| Variable | Purpose |
-|----------|---------|
-| `SEMANTIC_SCHOLAR_API_KEY` | Higher rate limits on Semantic Scholar |
-| `LOG_LEVEL` | Override log level (`DEBUG`, `INFO`, `WARNING`, `ERROR`) |
+* `SEMANTIC_SCHOLAR_API_KEY`: Increases rate limits for Semantic Scholar queries.
+* `LOG_LEVEL`: Overrides the default logging verbosity (e.g., `DEBUG`, `INFO`, `WARNING`, `ERROR`).
 
-### CLI Options
+### Command Line Interface
 
-The pipeline supports `--config` and `--output-dir` overrides:
+The pipeline binary accepts optional flags to override paths at runtime:
 
 ```bash
-uv run research-pipeline --config custom.yaml --output-dir ./my-results
+uv run research-pipeline --config custom.yaml --output-dir ./custom-results
 ```
 
-## Output
+## Output Structure
 
-Results are written to the `output/` directory:
+Results are generated in the specified output directory (default: `output/`).
 
-| File | Description |
-|------|-------------|
-| `results.csv` | All papers matching the keyword filter |
-| `results.json` | Same data in JSON format |
-| `pipeline.log` | Detailed execution log |
+* `results.csv`: A flattened tabular representation of the matched papers, including dedicated columns for matched keywords from each configured group.
+* `results.json`: A structured JSON document containing identical paper data.
+* `pipeline.log`: An operational log detailing the fetch, deduplication, and filter processes.
 
-## Project Structure
+## Project Layout
 
-```
-agentic-research-scout/
-├── config.yaml               # Pipeline configuration
-├── pyproject.toml            # Project manifest (uv / pip)
+```text
+internal-research-pipeline/
+├── config.yaml               # Pipeline and keyword configuration
+├── pyproject.toml            # Project manifest (uv)
 ├── .env.example              # Environment variable template
 ├── .gitignore
-├── README.md
+├── README.md                 # Project documentation
 ├── scripts/
-│   ├── run.sh                # Bash automation script
-│   └── run.ps1               # PowerShell automation script
+│   ├── run.sh                # Execution script for UNIX
+│   └── run.ps1               # Execution script for Windows
 └── src/
     └── research_pipeline/
         ├── __init__.py
-        ├── config.py         # Config loader
-        ├── keywords.py       # Keyword definitions and matching
-        └── pipeline.py       # Main paper-fetching pipeline
+        ├── config.py         # Handles YAML parsing and environment overrides
+        ├── keywords.py       # Implements dynamic group filtering logic
+        └── pipeline.py       # Main controller for fetching and formatting
 ```
-
-## How It Works
-
-1. **Fetch** — Collects papers from OpenReview (ICLR, NeurIPS) and Semantic Scholar/DBLP (AAAI)
-2. **Filter** — Applies a two-tier keyword filter: papers must mention both an agent-related term AND a domain-specific term (finance/audit or pharma/medicine)
-3. **Deduplicate** — Removes duplicate papers by normalised title
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/my-feature`)
-3. Make your changes
-4. Run linting: `uv run ruff check .`
-5. Submit a pull request

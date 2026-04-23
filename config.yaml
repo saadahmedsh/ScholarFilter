@@ -1,19 +1,79 @@
-# =============================================================================
-# Agentic Research Scout — Configuration
-# =============================================================================
-# This file controls all pipeline behaviour. Override per-run with --config.
-
-# Where to write output files (CSV, JSON, logs)
 output_dir: "./output"
 
-# ── Conferences to scan ──────────────────────────────────────────────────────
+keyword_groups:
+  Agent:
+    - '\bagent\b'
+    - '\bagents\b'
+    - '\bmulti[\-\s]?agent\b'
+    - '\bagentic\b'
+    - '\bllm[\-\s]?agent\b'
+    - '\bautonomous[\-\s]?agent\b'
+    - '\btool[\-\s]?use\b'
+    - '\btool[\-\s]?using\b'
+    - '\bagent[\-\s]?framework\b'
+    - '\breact\b'
+    - '\bchain[\-\s]?of[\-\s]?thought[\-\s]?agent\b'
+    - '\bagent[\-\s]?collaborat\w*\b'
+    - '\bagent[\-\s]?orchestrat\w*\b'
+    - '\bmulti[\-\s]?agent[\-\s]?system\b'
+    - '\bagent[\-\s]?based\b'
+    - '\bllm[\-\s]?based[\-\s]?agent\b'
+    - '\breinforcement[\-\s]?learning[\-\s]?agent\b'
+    - '\bagent[\-\s]?planning\b'
+    - '\bagent[\-\s]?reasoning\b'
+  Domain:
+    - '\baudit\w*\b'
+    - '\bfinancial\b'
+    - '\bfinance\b'
+    - '\baccounting\b'
+    - '\bfraud[\-\s]?detect\w*\b'
+    - '\bcompliance\b'
+    - '\brisk[\-\s]?assess\w*\b'
+    - '\binternal[\-\s]?control\b'
+    - '\bassurance\b'
+    - '\bforensic[\-\s]?account\w*\b'
+    - '\bsox\b'
+    - '\bsarbanes[\-\s]?oxley\b'
+    - '\bregulat\w*\b'
+    - '\banti[\-\s]?money[\-\s]?launder\w*\b'
+    - '\baml\b'
+    - '\bfinancial[\-\s]?report\w*\b'
+    - '\bfinancial[\-\s]?statement\b'
+    - '\btax\b'
+    - '\btaxation\b'
+    - '\bpharmaceut\w*\b'
+    - '\bdrug[\-\s]?discover\w*\b'
+    - '\bclinical[\-\s]?trial\w*\b'
+    - '\bpharmacolog\w*\b'
+    - '\bmedical\b'
+    - '\bhealthcare\b'
+    - '\bhealth[\-\s]?care\b'
+    - '\bbiomedic\w*\b'
+    - '\bdrug[\-\s]?design\b'
+    - '\bmolecul\w*\b'
+    - '\bprotein\b'
+    - '\bdiagnos\w*\b'
+    - '\bpatient\b'
+    - '\behr\b'
+    - '\belectronic[\-\s]?health[\-\s]?record\b'
+    - '\bdrug[\-\s]?repurpos\w*\b'
+    - '\bdrug[\-\s]?development\b'
+    - '\bclinical\b'
+    - '\bpatholog\w*\b'
+    - '\bradiol\w*\b'
+    - '\boncolog\w*\b'
+    - '\bgenomi\w*\b'
+    - '\bprecision[\-\s]?medicine\b'
+    - '\bmedic\w+[\-\s]?ai\b'
+    - '\btherapeu\w*\b'
+    - '\bbiomark\w*\b'
+
 conferences:
   openreview:
     - venue_id: "ICLR.cc/2025/Conference"
       label: "ICLR 2025"
     - venue_id: "NeurIPS.cc/2025/Conference"
       label: "NeurIPS 2025"
-
   aaai:
     venue: "AAAI"
     year: "2025"
@@ -31,27 +91,23 @@ conferences:
     max_results_per_query: 1000
     dblp_fallback_threshold: 10
 
-# ── API settings ─────────────────────────────────────────────────────────────
 api:
   semantic_scholar:
     base_url: "https://api.semanticscholar.org/graph/v1"
     search_url: "https://api.semanticscholar.org/graph/v1/paper/search"
-    rate_limit_sleep: 1.5       # seconds between paginated requests
-    rate_limit_backoff: 30      # seconds to wait on 429 Too Many Requests
-    inter_query_sleep: 2        # seconds between separate queries
-    request_timeout: 30         # seconds
-    batch_limit: 100            # results per page
-
+    rate_limit_sleep: 1.5
+    rate_limit_backoff: 30
+    inter_query_sleep: 2
+    request_timeout: 30
+    batch_limit: 100
   dblp:
     base_url: "https://dblp.org/search/publ/api"
     max_results: 1000
     request_timeout: 30
     inter_query_sleep: 1
-
   openreview:
     base_url: "https://api2.openreview.net"
 
-# ── Logging ──────────────────────────────────────────────────────────────────
 logging:
-  level: "INFO"                 # DEBUG | INFO | WARNING | ERROR
-  log_file: "pipeline.log"     # written inside output_dir
+  level: "INFO"
+  log_file: "pipeline.log"
