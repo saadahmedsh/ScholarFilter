@@ -1,118 +1,53 @@
 """
 Keyword definitions and matching logic for the research filter.
-
-Two-tier filter:
-  1. Paper must match at least one **agent** keyword.
-  2. Paper must additionally match at least one **finance/audit** OR
-     **pharma/medicine** keyword.
 """
 
 from __future__ import annotations
 
 import re
+from typing import Any
 
 
-AGENT_KEYWORDS: list[str] = [
-    r"\bagent\b",
-    r"\bagents\b",
-    r"\bmulti[\-\s]?agent\b",
-    r"\bagentic\b",
-    r"\bllm[\-\s]?agent\b",
-    r"\bautonomous[\-\s]?agent\b",
-    r"\btool[\-\s]?use\b",
-    r"\btool[\-\s]?using\b",
-    r"\bagent[\-\s]?framework\b",
-    r"\breact\b",
-    r"\bchain[\-\s]?of[\-\s]?thought[\-\s]?agent\b",
-    r"\bagent[\-\s]?collaborat\w*\b",
-    r"\bagent[\-\s]?orchestrat\w*\b",
-    r"\bmulti[\-\s]?agent[\-\s]?system\b",
-    r"\bagent[\-\s]?based\b",
-    r"\bllm[\-\s]?based[\-\s]?agent\b",
-    r"\breinforcement[\-\s]?learning[\-\s]?agent\b",
-    r"\bagent[\-\s]?planning\b",
-    r"\bagent[\-\s]?reasoning\b",
-]
+class KeywordFilter:
+    """A filter for matching papers against dynamic keyword groups."""
 
-FINANCE_AUDIT_KEYWORDS: list[str] = [
-    r"\baudit\w*\b",
-    r"\bfinancial\b",
-    r"\bfinance\b",
-    r"\baccounting\b",
-    r"\bfraud[\-\s]?detect\w*\b",
-    r"\bcompliance\b",
-    r"\brisk[\-\s]?assess\w*\b",
-    r"\binternal[\-\s]?control\b",
-    r"\bassurance\b",
-    r"\bforensic[\-\s]?account\w*\b",
-    r"\bsox\b",
-    r"\bsarbanes[\-\s]?oxley\b",
-    r"\bregulat\w*\b",
-    r"\banti[\-\s]?money[\-\s]?launder\w*\b",
-    r"\baml\b",
-    r"\bfinancial[\-\s]?report\w*\b",
-    r"\bfinancial[\-\s]?statement\b",
-    r"\btax\b",
-    r"\btaxation\b",
-]
+    def __init__(self, cfg: dict[str, Any]) -> None:
+        """Initialize the filter with compiled regular expressions from the configuration."""
+        self.groups: dict[str, list[re.Pattern]] = {}
+        for group_name, keywords in cfg.get("keyword_groups", {}).items():
+            self.groups[group_name] = [re.compile(p, re.IGNORECASE) for p in keywords]
 
-PHARMA_MEDICINE_KEYWORDS: list[str] = [
-    r"\bpharmaceut\w*\b",
-    r"\bdrug[\-\s]?discover\w*\b",
-    r"\bclinical[\-\s]?trial\w*\b",
-    r"\bpharmacolog\w*\b",
-    r"\bmedical\b",
-    r"\bhealthcare\b",
-    r"\bhealth[\-\s]?care\b",
-    r"\bbiomedic\w*\b",
-    r"\bdrug[\-\s]?design\b",
-    r"\bmolecul\w*\b",
-    r"\bprotein\b",
-    r"\bdiagnos\w*\b",
-    r"\bpatient\b",
-    r"\behr\b",
-    r"\belectronic[\-\s]?health[\-\s]?record\b",
-    r"\bdrug[\-\s]?repurpos\w*\b",
-    r"\bdrug[\-\s]?development\b",
-    r"\bclinical\b",
-    r"\bpatholog\w*\b",
-    r"\bradiol\w*\b",
-    r"\boncolog\w*\b",
-    r"\bgenomi\w*\b",
-    r"\bprecision[\-\s]?medicine\b",
-    r"\bmedic\w+[\-\s]?ai\b",
-    r"\btherapeu\w*\b",
-    r"\bbiomark\w*\b",
-]
+    def _match_keywords(self, text: str, compiled: list[re.Pattern]) -> list[str]:
+        """Return the patterns that matched inside the provided text."""
+        return [p.pattern for p in compiled if p.search(text)]
 
-_agent_re = [re.compile(p, re.IGNORECASE) for p in AGENT_KEYWORDS]
-_finance_re = [re.compile(p, re.IGNORECASE) for p in FINANCE_AUDIT_KEYWORDS]
-_pharma_re = [re.compile(p, re.IGNORECASE) for p in PHARMA_MEDICINE_KEYWORDS]
+    def matches(self, title: str, abstract: str) -> dict[str, list[str]] | None:
+        """Apply the dynamic keyword group filter to a single paper.
+
+        Args:
+            title: The title of the paper.
+            abstract: The abstract of the paper.
+
+        Returns:
+            A dictionary mapping group names to matched keyword lists if the paper
+            passes the filter by matching at least one keyword in every group.
+            Returns None if any group has no matches.
+        """
+        if not self.groups:
+            return None
+
+        combined: str = f"{title} {abstract}"
+        results: dict[str, list[str]] = {}
+
+        for group_name, compiled_re in self.groups.items():
+            hits: list[str] = self._match_keywords(combined, compiled_re)
+            if not hits:
+                return None
+            results[group_name] = hits
+
+        return results
 
 
-def _match_keywords(text: str, compiled: list[re.Pattern]) -> list[str]:
-    """Return the *patterns* that matched inside *text*."""
-    return [p.pattern for p in compiled if p.search(text)]
-
-
-def matches_filter(title: str, abstract: str) -> dict | None:
-    """Apply the two-tier keyword filter to a single paper.
-
-    Returns a dict of matched keyword lists if the paper passes **both**
-    tiers, otherwise ``None``.
-    """
-    combined = f"{title} {abstract}"
-    agent_hits = _match_keywords(combined, _agent_re)
-    if not agent_hits:
-        return None
-
-    finance_hits = _match_keywords(combined, _finance_re)
-    pharma_hits = _match_keywords(combined, _pharma_re)
-    if not finance_hits and not pharma_hits:
-        return None
-
-    return {
-        "agent_keywords": agent_hits,
-        "finance_keywords": finance_hits,
-        "pharma_keywords": pharma_hits,
-    }
+def matches_filter(title: str, abstract: str, cfg: dict[str, Any]) -> dict[str, list[str]] | None:
+    """Apply the dynamic keyword group filter to a single paper (legacy interface)."""
+    return KeywordFilter(cfg).matches(title, abstract)
